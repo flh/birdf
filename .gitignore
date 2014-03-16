@@ -1,0 +1,7 @@
+*.cmo
+*.cmx
+*.cmi
+*.depends
+bibtex/bibtex_lex.ml
+bibtex/bibtex_parse.ml
+bibtex/bibtex_parse.mli
