@@ -4,7 +4,7 @@ let usual_namespaces =
   [
     (Rdf_foaf.foaf, "foaf");
     (Rdf_rdf.dc, "dc");
-    (Rdf_bibo.bibo, "bibo");
+    (Bibo.bibo, "bibo");
     (Rdf_dc.terms, "dcterm");
   ]
 
@@ -37,20 +37,20 @@ let find_author g name =
 let add_publication_prop g pub (property : [> ]) =
   try
     let (pred, obj) = match property with
-    | `Article -> (Rdf_rdf.rdf_type, Iri Rdf_bibo.bibo_Article)
-    | `Thesis ->  (Rdf_rdf.rdf_type, Iri Rdf_bibo.bibo_Thesis)
+    | `Article -> (Rdf_rdf.rdf_type, Iri Bibo.bibo_Article)
+    | `Thesis ->  (Rdf_rdf.rdf_type, Iri Bibo.bibo_Thesis)
     | `Creator a | `Author a -> (Rdf_dc.dc_creator, find_author g a)
     | `Title t -> (Rdf_dc.dc_title, (term_of_literal_string t))
     | `Date d -> (Rdf_dc.dc_date, term_of_datetime ~d:d ())
-    | `Issuer i -> (Rdf_bibo.bibo_issuer, (term_of_literal_string i))
-    | `Uri u -> (Rdf_bibo.bibo_uri, (term_of_literal_string u))
-    | `Doi d -> (Rdf_bibo.bibo_doi, (term_of_literal_string d))
+    | `Issuer i -> (Bibo.bibo_issuer, (term_of_literal_string i))
+    | `Uri u -> (Bibo.bibo_uri, (term_of_literal_string u))
+    | `Doi d -> (Bibo.bibo_doi, (term_of_literal_string d))
     | `Publisher p -> (Rdf_dc.terms_publisher, (term_of_literal_string p))
-    | `Isbn i -> (Rdf_bibo.bibo_isbn, (term_of_literal_string i))
-    | `Volume v -> (Rdf_bibo.bibo_volume, (term_of_literal_string v))
-    | `Issue i -> (Rdf_bibo.bibo_issue, (term_of_literal_string i))
-    | `Number n -> (Rdf_bibo.bibo_number, (term_of_literal_string n))
-    | `Pages p -> (Rdf_bibo.bibo_pages, (term_of_literal_string p))
+    | `Isbn i -> (Bibo.bibo_isbn, (term_of_literal_string i))
+    | `Volume v -> (Bibo.bibo_volume, (term_of_literal_string v))
+    | `Issue i -> (Bibo.bibo_issue, (term_of_literal_string i))
+    | `Number n -> (Bibo.bibo_number, (term_of_literal_string n))
+    | `Pages p -> (Bibo.bibo_pages, (term_of_literal_string p))
     | _ -> raise Not_found
     in g.Rdf_graph.add_triple ~sub:pub ~pred:pred ~obj:obj
   with Not_found -> ()
