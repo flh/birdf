@@ -7,3 +7,4 @@ bibtex/bibtex_parse.ml
 bibtex/bibtex_parse.mli
 bibo.mli
 import_bibo
+test/test

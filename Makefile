@@ -1,7 +1,7 @@
 DEBUG:=-g
 
 test/test: test/test.ml
-	ocamlfind ocamlc $(DEBUG) -o test -package rdf -linkpkg $<
+	ocamlfind ocamlc $(DEBUG) -o $@ -package rdf -linkpkg $<
 
 test/test_sqlite: sqlite_storage.cmo test/test_sqlite.cmo
 	ocamlfind ocamlc $(DEBUG) -linkpkg -package sqlite3,rdf -o $@ $^

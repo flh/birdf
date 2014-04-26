@@ -8,7 +8,7 @@ let _ =
     while true do
       let result = Bibtex_parse.main Bibtex_lex.bibtex lexbuf in
       let g = to_birdf result in
-      print_string (Rdf_xml.to_string ~indent:(None) g);
+      print_string (Rdf_xml.to_string g);
       (*let fh = open_out ("testbib_" ^(string_of_int !count)^".dot")  in
       output_string fh (Rdf_dot.dot_of_graph g);
       close_out fh;
