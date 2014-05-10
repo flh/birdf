@@ -1,4 +1,5 @@
 open Rdf_term
+open Rdf_graph
 
 let usual_namespaces =
   [
@@ -9,8 +10,8 @@ let usual_namespaces =
   ]
 
 let open_graph url =
-  let g = Rdf_graph.open_graph url in
-  List.iter (fun (ns, name) -> g.Rdf_graph.add_namespace ns name) usual_namespaces;
+  let g = open_graph url in
+  List.iter (fun (ns, name) -> g.add_namespace ns name) usual_namespaces;
   g
 
 let mk_literal_string s =
@@ -20,19 +21,74 @@ let term_of_string s =
 
 let create_node g url =
   match url with
-  | None -> Blank_ (g.Rdf_graph.new_blank_id())
+  | None -> Blank_ (g.new_blank_id())
   | Some url -> term_of_iri_string url
 
-let create_author g ?url name =
+(** {2} Author management *)
+
+(** Creating an empty author node, i.e., a node which is only a
+  foaf:Person. More predicates can be added later. *)
+let create_author ?url g =
   let author = create_node g url in
-  g.Rdf_graph.add_triple ~sub:author ~pred:Rdf_rdf.rdf_type ~obj:(Iri Rdf_foaf.foaf_Person);
-  g.Rdf_graph.add_triple ~sub:author ~pred:Rdf_foaf.foaf_name ~obj:(term_of_literal_string name);
+  g.add_triple ~sub:author ~pred:Rdf_rdf.rdf_type ~obj:(Iri Rdf_foaf.foaf_Person);
   author
 
+(** Adding a foaf:name to an author. *)
+let author_name g author name =
+  g.add_triple ~sub:author ~pred:Rdf_foaf.foaf_name ~obj:(term_of_literal_string name)
+
+(** Finding an author using its foaf:name *)
 let find_author g name =
   try List.hd
-    (g.Rdf_graph.subjects_of ~pred:Rdf_foaf.foaf_name ~obj:(term_of_literal_string name))
+    (g.subjects_of ~pred:Rdf_foaf.foaf_name ~obj:(term_of_literal_string name))
   with _ -> raise Not_found
+
+(** Basic template for creating an author.
+  This function creates an author, identified by an optional [?url], and
+  adds some common empty properties to him. Useful when used on an empty
+  graph to provide the user with a sensible template to edit. *)
+let author_template ?url g =
+  let author = create_author ?url g in
+  g.add_triple ~sub:author ~pred:Rdf_foaf.foaf_familyName ~obj:(term_of_literal_string "");
+  g.add_triple ~sub:author ~pred:Rdf_foaf.foaf_givenName ~obj:(term_of_literal_string "");
+  g.add_triple ~sub:author ~pred:Rdf_foaf.foaf_homepage ~obj:(Rdf_term.Iri (Rdf_iri.iri "http://"));
+  g.add_triple ~sub:author ~pred:Rdf_foaf.foaf_mbox ~obj:(Rdf_term.Iri (Rdf_iri.iri "mailto:"))
+
+(** {2} Merging nodes
+
+  When importing bibliographical data from different sources, some
+  entries may be inserted multiple times, if we couldn't detect at that
+  time that they should have been considered equivalent. They can be
+  merged afterwards using the following functions.
+ *)
+
+(** Replace the suject in triple [(osub, pred, obj)] with a new one
+  [nsub]. If the triple [(nsub, pred, obj)] already exists, then the
+  triple to replace is simply removed from the graph.
+  *)
+let replace_subject g nsub (osub, opred, oobj) =
+  if not (g.exists ~sub:nsub ~pred:opred ~obj:oobj ())
+  then g.add_triple nsub opred oobj;
+  g.rem_triple ~sub:osub ~pred:opred ~obj:oobj
+
+(** Replace the object in triple [(sub, pred, oobj)] with a new one
+  [nobj]. If the triple [(sub, pred, nobj)] already exists, then the
+  triple to replace is simply removed from the graph.
+  *)
+let replace_object g nobj (osub, opred, oobj) =
+  if not (g.exists ~sub:osub ~pred:opred ~obj:nobj ())
+  then g.add_triple osub opred nobj;
+  g.rem_triple ~sub:osub ~pred:opred ~obj:oobj
+
+(** Calling [merge nodes g aut1 aut2] replaces all occurrences of the
+  node [aut2] in the graph with [aut2]. This function uses
+  {!replace_subject} and {!replace_object} to ensure that no duplicate
+  triple is create while merging. *)
+let merge_nodes g aut1 aut2 =
+  List.iter (replace_subject g aut1) (g.find ~sub:aut2 ());
+  List.iter (replace_object  g aut1) (g.find ~obj:aut2 ())
+
+(** {2} Publication management *)
 
 let add_publication_prop g pub (property : [> ]) =
   try
@@ -52,7 +108,7 @@ let add_publication_prop g pub (property : [> ]) =
     | `Number n -> (Bibo.bibo_number, (term_of_literal_string n))
     | `Pages p -> (Bibo.bibo_pages, (term_of_literal_string p))
     | _ -> raise Not_found
-    in g.Rdf_graph.add_triple ~sub:pub ~pred:pred ~obj:obj
+    in g.add_triple ~sub:pub ~pred:pred ~obj:obj
   with Not_found -> ()
 
 let add_publication g ?url props =
@@ -61,7 +117,7 @@ let add_publication g ?url props =
 
 let extract_publication g pub =
   let subg = open_graph (Rdf_iri.iri "http://example.com/") in
-  List.iter subg.Rdf_graph.add_triple_t (g.Rdf_graph.find ~sub:pub ());
+  List.iter subg.add_triple_t (g.find ~sub:pub ());
   subg
 
 let export_publication g pub =
