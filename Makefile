@@ -20,10 +20,15 @@ bibo.cmo: bibo.owl import_bibo bibo.cmi
 sqlite_storage.cmo: sqlite_storage.ml
 	ocamlfind ocamlc $(DEBUG) -c -package sqlite3,rdf -c $< $@
 
-SOURCES := $(wildcard *.ml) $(wildcard bibtex/*.ml) bibtex/bibtex_parse.mli bibtex/bibtex_parse.ml bibtex/bibtex_lex.ml
-INCLUDES := -I bibtex
+SOURCES := $(wildcard *.ml) $(wildcard main/*.ml) $(wildcard bibtex/*.ml) bibtex/bibtex_parse.mli bibtex/bibtex_parse.ml bibtex/bibtex_lex.ml
+INCLUDES := -I bibtex -I main
 PACKAGES := -package rdf
 
+# Main executables
+main/birdf-init: main/birdf-init.cmo sqlite_storage.cmo
+	ocamlfind ocamlc $(INCLUDES) -o $@ -linkpkg -package rdf,sqlite3 sqlite_storage.cmo path.cmo util.cmo $<
+
+# Bibtex parsing
 bibtex/test_bibtex.ml.depends: bibtex/bibtex_lex.ml bibtex/bibtex_parse.ml
 bibtex/bibtex_parse.mli: bibtex/bibtex_parse.ml ;
 bibtex/bibtex_parse.ml: bibtex/bibtex_parse.mly
